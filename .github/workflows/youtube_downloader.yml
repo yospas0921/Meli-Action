@@ -120,6 +120,7 @@ jobs:
           vid   = re.search(r'(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})', URL)[1]
           clean = re.sub(r'[^a-zA-Z0-9\-_()\[\]]', '_', title.replace(' ', '_'))
           clean = re.sub(r'_+', '_', clean).strip('_')[:70] or vid
+          clean = clean.lstrip('-')
           fname = f"{clean}_{vid}_{QUAL}.{FMT}"
 
           with open(".download_info", "w", encoding="utf-8") as f:
@@ -162,7 +163,7 @@ jobs:
             BASE="${FILENAME%.*}"
             # split directly inside release_files
             cd release_files
-            zip -r -s "${THRESH_MB}m" "${BASE}.zip" -- "$FILENAME"
+            zip -r -s "${THRESH_MB}m" "${BASE}.zip" "./$FILENAME"
             rm -- "$FILENAME"
             cd ..
             echo "Parts created:"

@@ -1,10 +1,10 @@
-name: "Spotify & SoundCloud Downloader"
+name: "SoundCloud Downloader"
 
 on:
   workflow_dispatch:
     inputs:
       media_url:
-        description: "Spotify or SoundCloud URL"
+        description: "SoundCloud URL"
         required: true
         type: string
 
@@ -82,40 +82,7 @@ jobs:
         run: |
           mkdir -p release_files
 
-      - name: Start Downtify Container
-        if: contains(github.event.inputs.media_url, 'spotify.com')
-        shell: bash
-        run: |
-          docker run -d \
-            --name downtify \
-            -p 8000:8000 \
-            ghcr.io/henriquesebastiao/downtify:latest
-
-          echo "Waiting for Downtify startup..."
-          sleep 40
-
-      - name: Debug Downtify Routes
-        if: contains(github.event.inputs.media_url, 'spotify.com')
-        shell: bash
-        run: |
-          echo "Checking available routes..."
-
-          curl -s http://localhost:8000/openapi.json || true
-
-      - name: Download Spotify Media
-        if: contains(github.event.inputs.media_url, 'spotify.com')
-        shell: bash
-        run: |
-          URL="${{ github.event.inputs.media_url }}"
-
-          echo "Spotify detected"
-
-          curl -L \
-            "http://localhost:8000/download?url=$URL" \
-            --output "release_files/spotify_download.mp3"
-
       - name: Download SoundCloud Media
-        if: contains(github.event.inputs.media_url, 'soundcloud.com')
         shell: bash
         run: |
           URL="${{ github.event.inputs.media_url }}"
@@ -149,7 +116,7 @@ jobs:
         run: |
           THRESH_MB="${{ github.event.inputs.max_part_mb }}"
 
-          if [[ "$THRESH_MB" -le 0 || "$THRESH_MB" -gt 1900 ]]; then
+          if [[ "$THRESH_MB" -le 0 ]] || [[ "$THRESH_MB" -gt 1900 ]]; then
             THRESH_MB=1800
           fi
 
@@ -166,7 +133,7 @@ jobs:
 
               BASE="${FILE%.*}"
 
-              zip -r -s "${THRESH_MB}m" "${BASE}.zip" -- "$FILE"
+              zip -r -s "${THRESH_MB}m" "${BASE}.zip" "./$FILE"
 
               rm -f "$FILE"
             fi
@@ -193,7 +160,7 @@ jobs:
 
           git add downloads/
 
-          git commit -m "Media Download [skip ci]" || echo "Nothing to commit"
+          git commit -m "SoundCloud Download [skip ci]" || echo "Nothing to commit"
 
           git push
 
@@ -201,10 +168,10 @@ jobs:
         if: github.event.inputs.upload_method == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.release_tag != '' && github.event.inputs.release_tag || format('media-{0}', github.run_number) }}
-          name: "Spotify & SoundCloud Download"
+          tag_name: ${{ github.event.inputs.release_tag != '' && github.event.inputs.release_tag || format('soundcloud-{0}', github.run_number) }}
+          name: "SoundCloud Download"
           body: |
-            Media Download Complete
+            SoundCloud Download Complete
 
             URL: ${{ github.event.inputs.media_url }}
             Format: ${{ github.event.inputs.output_format }}
@@ -221,5 +188,4 @@ jobs:
         if: always()
         shell: bash
         run: |
-          docker rm -f downtify 2>/dev/null || true
           rm -rf release_files
